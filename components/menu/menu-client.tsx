@@ -99,8 +99,14 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                 (payload) => {
                     const newOrder = payload.new as CustomerOrder
                     if (newOrder.status !== 'paid') {
-                        setMyOrders(prev => [newOrder, ...prev])
-                        toast.success("Siparişiniz alındı!")
+                        setMyOrders(prev => {
+                            // Deduplicate: Don't add if already exists (e.g. from immediate insert response)
+                            if (prev.some(o => o.id === newOrder.id)) return prev
+                            return [newOrder, ...prev]
+                        })
+                        // Optional: toast here might be redundant if we already toasted on placeOrder, 
+                        // but good for other devices. 
+                        // toast.success("Siparişiniz alındı!") 
                     }
                 }
             )
@@ -166,15 +172,23 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                 status: 'new' as const,
                 items: JSON.parse(JSON.stringify(items))
             }
-            const { error } = await supabase.from("orders").insert(orderData)
+            // Fix: Select the inserted row immediately to get the ID and full object
+            const { data, error } = await supabase
+                .from("orders")
+                .insert(orderData)
+                .select()
+                .single()
+
             if (error) throw error
 
-            // Removed fetchOrders(). Relying on Realtime listener to update UI.
-            // await fetchOrders()
-
-            toast.success("Siparişiniz alındı!")
-            clearCart()
-            setActiveTab('orders') // Switch to orders tab
+            // Immediate UI update (Optimistic-like but with real DB data)
+            if (data) {
+                const newOrder = data as unknown as CustomerOrder
+                setMyOrders(prev => [newOrder, ...prev])
+                toast.success("Siparişiniz alındı!")
+                clearCart()
+                setActiveTab('orders')
+            }
         } catch (error) {
             console.error(error)
             toast.error("Hata oluştu.")
