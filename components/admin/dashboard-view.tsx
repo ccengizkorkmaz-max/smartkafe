@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import Image from "next/image"
-import { Bell, CheckCircle, Clock, Utensils, LogOut, Package, QrCode, Store } from "lucide-react"
+import { Bell, CheckCircle, Clock, Utensils, LogOut, Package, QrCode, Store, Play } from "lucide-react"
 import AdminNavbar from "@/components/admin/admin-navbar"
 
 // Types
@@ -134,6 +134,34 @@ export default function DashboardView() {
         if (error) toast.error("Güncelleme hatası")
     }
 
+    const closeTable = async (tableNo: string) => {
+        if (!confirm(`${tableNo} nolu masayı kapatmak (ödemesi alındı) istiyor musunuz?`)) return
+
+        setLoading(true)
+        // Update all active orders for this table to 'paid'
+        const { error } = await supabase
+            .from("orders")
+            .update({ status: 'paid' })
+            .eq("table_no", tableNo)
+            .neq("status", 'paid') // Update all non-paid orders
+
+        if (error) {
+            console.error(error)
+            toast.error("Masa kapatılamadı")
+        } else {
+            toast.success("Masa kapatıldı ve siparişler arşivlendi")
+            // Remove local orders for this table
+            setOrders(prev => prev.filter(o => o.table_no !== tableNo))
+
+            // Also dismiss any active calls for this table
+            const activeCalls = calls.filter(c => c.table_no === tableNo)
+            for (const call of activeCalls) {
+                dismissCall(call.id)
+            }
+        }
+        setLoading(false)
+    }
+
     const dismissCall = async (id: string) => {
         setCalls(prev => prev.filter(c => c.id !== id))
         await supabase.from("calls").update({ active: false }).eq("id", id)
@@ -149,62 +177,23 @@ export default function DashboardView() {
 
             <main className="max-w-7xl mx-auto p-6 space-y-10 mt-4">
                 {/* Status Indicator */}
-                <div className="flex justify-end -mb-8">
-                    <Badge variant="outline" className={`gap-1 ${connectionStatus === 'SUBSCRIBED' ? 'text-green-500 border-green-500/20' : 'text-amber-500 border-amber-500/20'}`}>
-                        <div className={`w-2 h-2 rounded-full ${connectionStatus === 'SUBSCRIBED' ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
-                        {connectionStatus === 'SUBSCRIBED' ? 'Canlı Bağlantı' : 'Bağlanıyor...'}
-                    </Badge>
-                </div>
-
-                {/* Active Calls */}
-                <AnimatePresence>
-                    {calls.length > 0 && (
-                        <motion.section
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="bg-destructive/10 border border-destructive/20 rounded-2xl p-6"
-                        >
-                            <h2 className="text-lg font-bold flex items-center gap-2 text-destructive mb-4">
-                                <Bell className="w-5 h-5 animate-bounce" /> Acil Çağrılar ({calls.length})
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                {calls.map(call => (
-                                    <motion.div
-                                        key={call.id}
-                                        initial={{ scale: 0.9, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        exit={{ scale: 0.9, opacity: 0 }}
-                                        className="bg-background/80 backdrop-blur rounded-xl p-4 border border-destructive/30 flex items-center justify-between shadow-lg"
-                                    >
-                                        <div>
-                                            <div className="text-xs text-destructive-foreground font-medium uppercase tracking-wider mb-1">
-                                                {call.type === 'bill' ? 'Hesap' : 'Garson'}
-                                            </div>
-                                            <div className="text-2xl font-black">Masa {call.table_no}</div>
-                                            <div className="text-[10px] text-muted-foreground mt-1">
-                                                {new Date(call.created_at).toLocaleTimeString()}
-                                            </div>
-                                        </div>
-                                        <Button size="icon" variant="destructive" className="rounded-full w-10 h-10 shadow-lg" onClick={() => dismissCall(call.id)}>
-                                            <CheckCircle className="w-5 h-5" />
-                                        </Button>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </motion.section>
-                    )}
-                </AnimatePresence>
-
-                {/* Orders Kanban */}
+                {/* Connection Status & Refresh Header */}
                 <section>
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                         <h2 className="text-2xl font-bold flex items-center gap-2">
                             Mutfak Takip <Badge variant="secondary" className="ml-2 text-primary">{orders.length}</Badge>
                         </h2>
-                        <Button variant="outline" size="sm" onClick={refreshData} disabled={loading}>
-                            Yenile
-                        </Button>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                            <Badge variant="outline" className={`gap-1 ${connectionStatus === 'SUBSCRIBED' ? 'text-green-500 border-green-500/20' : 'text-amber-500 border-amber-500/20'}`}>
+                                <div className={`w-2 h-2 rounded-full ${connectionStatus === 'SUBSCRIBED' ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
+                                {connectionStatus === 'SUBSCRIBED' ? 'Canlı' : '...'}
+                            </Badge>
+
+                            <Button variant="outline" size="sm" onClick={refreshData} disabled={loading}>
+                                Yenile
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -259,19 +248,21 @@ export default function DashboardView() {
                                             <div className="flex gap-2">
                                                 {order.status === 'new' && (
                                                     <Button
-                                                        size="sm"
+                                                        size="icon"
                                                         className="bg-blue-600 hover:bg-blue-500 text-white border-none shadow-lg shadow-blue-500/20"
+                                                        title="Hazırlamaya Başla"
                                                         onClick={() => updateOrderStatus(order.id, 'preparing')}
                                                     >
-                                                        Başla
+                                                        <Play className="w-4 h-4 fill-current" />
                                                     </Button>
                                                 )}
                                                 <Button
-                                                    size="sm"
+                                                    size="icon"
                                                     className="bg-green-600 hover:bg-green-500 text-white border-none shadow-lg shadow-green-500/20"
+                                                    title="Tamamla"
                                                     onClick={() => updateOrderStatus(order.id, 'done')}
                                                 >
-                                                    Tamam
+                                                    <CheckCircle className="w-4 h-4" />
                                                 </Button>
                                             </div>
                                         </div>

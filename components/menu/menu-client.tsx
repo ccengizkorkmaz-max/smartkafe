@@ -81,6 +81,7 @@ export default function MenuClient({ store, products }: MenuClientProps) {
                 .select("*")
                 .eq("store_id", store.id)
                 .eq("table_no", tableNo)
+                .neq("status", "paid") // Don't show paid (closed) orders
                 .order("created_at", { ascending: false })
 
             if (data) setMyOrders(data as unknown as CustomerOrder[])

@@ -70,7 +70,7 @@ export interface Database {
                     store_id: string
                     table_no: string
                     total_price: number
-                    status: 'new' | 'preparing' | 'done'
+                    status: 'new' | 'preparing' | 'done' | 'paid'
                     items: Json
                     created_at: string
                 }
