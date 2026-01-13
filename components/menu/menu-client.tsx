@@ -95,8 +95,11 @@ export default function MenuClient({ store, products }: MenuClientProps) {
             .on('postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'orders', filter: `table_no=eq.${tableNo}` },
                 (payload) => {
-                    fetchOrders() // Refresh to get full data safely
-                    toast.success("Siparişiniz alındı!")
+                    const newOrder = payload.new as CustomerOrder
+                    if (newOrder.status !== 'paid') {
+                        setMyOrders(prev => [newOrder, ...prev])
+                        toast.success("Siparişiniz alındı!")
+                    }
                 }
             )
             .on('postgres_changes',
@@ -164,8 +167,8 @@ export default function MenuClient({ store, products }: MenuClientProps) {
             const { error } = await supabase.from("orders").insert(orderData)
             if (error) throw error
 
-            // Immediate refresh
-            await fetchOrders()
+            // Removed fetchOrders(). Relying on Realtime listener to update UI.
+            // await fetchOrders()
 
             toast.success("Siparişiniz alındı!")
             clearCart()
