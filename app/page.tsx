@@ -285,61 +285,61 @@ export default function Home() {
         </div>
       </section>
 
-    </section>
 
-      {/* FAQ Section */ }
-  <section className="py-24 bg-zinc-900/30 border-y border-white/5">
-    <div className="max-w-4xl mx-auto px-6">
-      <div className="text-center mb-16">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4">Sıkça Sorulan Sorular</h2>
-        <p className="text-muted-foreground">Aklınıza takılan soruların cevaplarını burada bulabilirsiniz.</p>
-      </div>
 
-      <div className="grid gap-6">
-        {faqs.map((faq, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-          >
-            <h3 className="text-lg font-bold mb-3 flex items-start gap-3">
-              <span className="text-primary mt-1">
-                <Check className="w-5 h-5" />
-              </span>
-              {faq.q}
-            </h3>
-            <p className="text-muted-foreground pl-8 leading-relaxed">
-              {faq.a}
+      {/* FAQ Section */}
+      <section className="py-24 bg-zinc-900/30 border-y border-white/5">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Sıkça Sorulan Sorular</h2>
+            <p className="text-muted-foreground">Aklınıza takılan soruların cevaplarını burada bulabilirsiniz.</p>
+          </div>
+
+          <div className="grid gap-6">
+            {faqs.map((faq, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+              >
+                <h3 className="text-lg font-bold mb-3 flex items-start gap-3">
+                  <span className="text-primary mt-1">
+                    <Check className="w-5 h-5" />
+                  </span>
+                  {faq.q}
+                </h3>
+                <p className="text-muted-foreground pl-8 leading-relaxed">
+                  {faq.a}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="p-10 md:p-16 rounded-3xl bg-gradient-to-b from-primary/10 to-transparent border border-primary/20">
+            <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">Hemen Ücretsiz Kullanmaya Başlayın</h2>
+            <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
+              Kredi kartı gerekmez, kurulum ücreti yok, aylık ödeme yok. SmartKafe işletmeniz için tamamen ücretsizdir.
             </p>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  </section>
+            <Link href="/admin/login">
+              <Button size="lg" className="h-14 px-10 text-lg rounded-full shadow-2xl shadow-primary/30 hover:scale-105 transition-transform bg-white text-black hover:bg-gray-200">
+                Ücretsiz Hesap Oluştur
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
 
-  {/* CTA Section */ }
-  <section className="py-24">
-    <div className="max-w-4xl mx-auto px-6 text-center">
-      <div className="p-10 md:p-16 rounded-3xl bg-gradient-to-b from-primary/10 to-transparent border border-primary/20">
-        <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">Hemen Ücretsiz Kullanmaya Başlayın</h2>
-        <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
-          Kredi kartı gerekmez, kurulum ücreti yok, aylık ödeme yok. SmartKafe işletmeniz için tamamen ücretsizdir.
-        </p>
-        <Link href="/admin/login">
-          <Button size="lg" className="h-14 px-10 text-lg rounded-full shadow-2xl shadow-primary/30 hover:scale-105 transition-transform bg-white text-black hover:bg-gray-200">
-            Ücretsiz Hesap Oluştur
-          </Button>
-        </Link>
-      </div>
-    </div>
-  </section>
-
-  {/* Footer */ }
-  <footer className="border-t border-white/5 py-10 text-center text-sm text-muted-foreground">
-    <p>© 2024 SmartKafe. Tüm hakları saklıdır.</p>
-  </footer>
+      {/* Footer */}
+      <footer className="border-t border-white/5 py-10 text-center text-sm text-muted-foreground">
+        <p>© 2024 SmartKafe. Tüm hakları saklıdır.</p>
+      </footer>
     </div >
   );
 }
