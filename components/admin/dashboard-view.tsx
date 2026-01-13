@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import Image from "next/image"
-import { Bell, CheckCircle, Clock, Utensils, LogOut, Package, QrCode, Store, Play } from "lucide-react"
+import { Bell, CheckCircle, Clock, Utensils, LogOut, Package, QrCode, Store, Play, CreditCard } from "lucide-react"
 import AdminNavbar from "@/components/admin/admin-navbar"
 
 // Types
@@ -121,7 +121,7 @@ export default function DashboardView() {
         }
     }, [router])
 
-    const updateOrderStatus = async (id: string, status: 'preparing' | 'done') => {
+    const updateOrderStatus = async (id: string, status: 'preparing' | 'done' | 'paid') => {
         setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
 
         // No longer removing 'done' orders automatically. They stay until table is closed (paid).
@@ -244,22 +244,31 @@ export default function DashboardView() {
                                             <div className="flex gap-2">
                                                 {order.status === 'new' && (
                                                     <Button
-                                                        size="icon"
-                                                        className="bg-blue-600 hover:bg-blue-500 text-white border-none shadow-lg shadow-blue-500/20"
-                                                        title="Hazırlamaya Başla"
+                                                        size="sm"
+                                                        className="bg-blue-600 hover:bg-blue-500 text-white border-none shadow-lg shadow-blue-500/20 gap-2"
                                                         onClick={() => updateOrderStatus(order.id, 'preparing')}
                                                     >
-                                                        <Play className="w-4 h-4 fill-current" />
+                                                        <Play className="w-4 h-4 fill-current" /> Hazırlanıyor
                                                     </Button>
                                                 )}
-                                                <Button
-                                                    size="icon"
-                                                    className="bg-green-600 hover:bg-green-500 text-white border-none shadow-lg shadow-green-500/20"
-                                                    title="Tamamla"
-                                                    onClick={() => updateOrderStatus(order.id, 'done')}
-                                                >
-                                                    <CheckCircle className="w-4 h-4" />
-                                                </Button>
+                                                {order.status === 'preparing' && (
+                                                    <Button
+                                                        size="sm"
+                                                        className="bg-orange-500 hover:bg-orange-600 text-white border-none shadow-lg shadow-orange-500/20 gap-2"
+                                                        onClick={() => updateOrderStatus(order.id, 'done')}
+                                                    >
+                                                        <Utensils className="w-4 h-4" /> Servis Edildi
+                                                    </Button>
+                                                )}
+                                                {order.status === 'done' && (
+                                                    <Button
+                                                        size="sm"
+                                                        className="bg-green-600 hover:bg-green-500 text-white border-none shadow-lg shadow-green-500/20 gap-2"
+                                                        onClick={() => updateOrderStatus(order.id, 'paid')}
+                                                    >
+                                                        <CreditCard className="w-4 h-4" /> Ödendi
+                                                    </Button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
