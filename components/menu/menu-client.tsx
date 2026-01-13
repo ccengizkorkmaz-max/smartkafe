@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { ShoppingBag, Bell, Search, Utensils, Home, Clock, CheckCircle, Receipt } from "lucide-react"
@@ -71,22 +71,23 @@ export default function MenuClient({ store, products }: MenuClientProps) {
         return matchesCategory && matchesSearch
     })
 
-    // Subscribe to Orders for this Table
+    const fetchOrders = useCallback(async () => {
+        if (!tableNo) return
+        const { data } = await supabase
+            .from("orders")
+            .select("*")
+            .eq("store_id", store.id)
+            .eq("table_no", tableNo)
+            .neq("status", "paid") // Don't show paid (closed) orders
+            .order("created_at", { ascending: false })
+
+        if (data) setMyOrders(data as unknown as CustomerOrder[])
+    }, [tableNo, store.id])
+
     // Subscribe to Orders for this Table
     useEffect(() => {
         if (!tableNo) return
 
-        const fetchOrders = async () => {
-            const { data } = await supabase
-                .from("orders")
-                .select("*")
-                .eq("store_id", store.id)
-                .eq("table_no", tableNo)
-                .neq("status", "paid") // Don't show paid (closed) orders
-                .order("created_at", { ascending: false })
-
-            if (data) setMyOrders(data as unknown as CustomerOrder[])
-        }
         fetchOrders()
 
         const channel = supabase
@@ -94,11 +95,8 @@ export default function MenuClient({ store, products }: MenuClientProps) {
             .on('postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'orders', filter: `table_no=eq.${tableNo}` },
                 (payload) => {
-                    const newOrder = payload.new as CustomerOrder
-                    if (newOrder.status !== 'paid') {
-                        setMyOrders(prev => [newOrder, ...prev])
-                        toast.success("Siparişiniz alındı!")
-                    }
+                    fetchOrders() // Refresh to get full data safely
+                    toast.success("Siparişiniz alındı!")
                 }
             )
             .on('postgres_changes',
@@ -124,7 +122,7 @@ export default function MenuClient({ store, products }: MenuClientProps) {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [tableNo, store.id])
+    }, [tableNo, fetchOrders])
 
 
     const handleCallWaiter = async (type: 'waiter' | 'bill') => {
@@ -165,6 +163,10 @@ export default function MenuClient({ store, products }: MenuClientProps) {
             }
             const { error } = await supabase.from("orders").insert(orderData)
             if (error) throw error
+
+            // Immediate refresh
+            await fetchOrders()
+
             toast.success("Siparişiniz alındı!")
             clearCart()
             setActiveTab('orders') // Switch to orders tab
