@@ -38,7 +38,7 @@ export default function DashboardView() {
             .from("orders")
             .select("*")
             .order("created_at", { ascending: false })
-            .neq("status", "done")
+            .neq("status", "paid") // Show all orders except paid ones
             .limit(100)
 
         if (ordersData) setOrders(ordersData)
@@ -87,7 +87,7 @@ export default function DashboardView() {
                 .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
                     const updatedOrder = payload.new as Order
                     console.log("Realtime UPDATE:", updatedOrder)
-                    if (updatedOrder.status === 'done') {
+                    if (updatedOrder.status === 'paid') {
                         setOrders(prev => prev.filter(o => o.id !== updatedOrder.id))
                     } else {
                         setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))
@@ -124,11 +124,7 @@ export default function DashboardView() {
     const updateOrderStatus = async (id: string, status: 'preparing' | 'done') => {
         setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
 
-        if (status === 'done') {
-            setTimeout(() => {
-                setOrders(prev => prev.filter(o => o.id !== id))
-            }, 1000)
-        }
+        // No longer removing 'done' orders automatically. They stay until table is closed (paid).
 
         const { error } = await supabase.from("orders").update({ status }).eq("id", id)
         if (error) toast.error("Güncelleme hatası")
