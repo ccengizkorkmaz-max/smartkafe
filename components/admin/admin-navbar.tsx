@@ -43,7 +43,7 @@ export default function AdminNavbar({ store }: AdminNavbarProps) {
                         ) : (
                             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-black font-bold">SK</div>
                         )}
-                        <h1 className="font-bold text-lg hidden sm:block">{store?.name || 'Yönetim Paneli'}</h1>
+                        <h1 className="font-bold text-lg hidden sm:block">{store?.name ? `${store.name} Yönetim Paneli` : 'Yönetim Paneli'}</h1>
                     </div>
 
                     <div className="flex items-center gap-1 md:gap-2">
