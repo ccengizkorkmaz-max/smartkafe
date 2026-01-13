@@ -49,7 +49,7 @@ export default function Home() {
     },
     {
       q: "Mevcut pos sistemimle entegre çalışır mı?",
-      a: "SmartKafe bağımsız bir bulut sistemdir. Mevcut sisteminize dokunmadan, paralel olarak ("ekstra bir sipariş kanalı" gibi) çalışabilir. Kurulum gerektirmez."
+      a: "SmartKafe bağımsız bir bulut sistemdir. Mevcut sisteminize dokunmadan, paralel olarak ('ekstra bir sipariş kanalı' gibi) çalışabilir. Kurulum gerektirmez."
     }
   ]
 
