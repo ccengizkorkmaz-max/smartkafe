@@ -123,7 +123,7 @@ export default function QRGenerator() {
                         {loading ? "Oluşturuluyor..." : "Kodları Oluştur"}
                     </Button>
                     {qrData.length > 0 && (
-                        <Button onClick={() => window.print()} variant="outline" className="gap-2 border-gray-300">
+                        <Button onClick={() => window.print()} className="gap-2 bg-black text-white hover:bg-gray-800 border-none">
                             <Printer className="w-4 h-4" /> Yazdır
                         </Button>
                     )}
