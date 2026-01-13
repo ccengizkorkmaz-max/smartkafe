@@ -32,6 +32,7 @@ interface Store {
 interface MenuClientProps {
     store: Store
     products: Product[]
+    initialTableNo?: string
 }
 
 // Types for Orders
@@ -51,9 +52,10 @@ interface CustomerOrder {
 }
 
 
-export default function MenuClient({ store, products }: MenuClientProps) {
+export default function MenuClient({ store, products, initialTableNo }: MenuClientProps) {
     const searchParams = useSearchParams()
-    const tableNo = searchParams.get("table")
+    // Prefer the secure server-resolved table number, fallback to legacy URL param
+    const tableNo = initialTableNo || searchParams.get("table")
     const { items, addItem, removeItem, clearCart, total } = useCart()
     const [activeTab, setActiveTab] = useState<'menu' | 'cart' | 'orders'>('menu')
     const [isCallingWaiter, setIsCallingWaiter] = useState(false)

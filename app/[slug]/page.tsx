@@ -1,9 +1,9 @@
-
 import { notFound } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import MenuClient from "@/components/menu/menu-client"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import type { Metadata } from "next"
 
 // Force dynamic rendering since we depend on searchParams and DB data
 export const dynamic = "force-dynamic"
@@ -11,10 +11,27 @@ export const revalidate = 0
 
 interface PageProps {
     params: Promise<{ slug: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-export default async function StorePage({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { slug } = await params
+
+    const { data: store } = await supabase
+        .from("stores")
+        .select("name")
+        .eq("slug", slug)
+        .single()
+
+    return {
+        title: store?.name || "Menü",
+    }
+}
+
+export default async function StorePage({ params, searchParams }: PageProps) {
+    const { slug } = await params
+    const resolvedSearchParams = await searchParams
+    const token = resolvedSearchParams.t as string | undefined
 
     // 1. Fetch Store
     const { data: store, error: storeError } = await supabase
@@ -34,7 +51,21 @@ export default async function StorePage({ params }: PageProps) {
         )
     }
 
-    // 2. Fetch Products
+    // 2. Resolve Table Token (Security)
+    let initialTableNo: string | undefined
+    if (token) {
+        const { data: tableData } = await supabase
+            .from("tables")
+            .select("table_no")
+            .eq("qr_token", token)
+            .single()
+
+        if (tableData) {
+            initialTableNo = tableData.table_no
+        }
+    }
+
+    // 3. Fetch Products
     const { data: products, error: productError } = await supabase
         .from("products")
         .select("id, name, price, description, image_url, category")
@@ -47,7 +78,7 @@ export default async function StorePage({ params }: PageProps) {
 
     return (
         <div className="min-h-screen bg-background text-foreground font-sans">
-            <MenuClient store={store} products={products || []} />
+            <MenuClient store={store} products={products || []} initialTableNo={initialTableNo} />
         </div>
     )
 }

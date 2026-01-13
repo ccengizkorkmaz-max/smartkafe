@@ -93,6 +93,29 @@ export interface Database {
                     created_at?: string
                 }
             }
+            tables: {
+                Row: {
+                    id: string
+                    store_id: string
+                    table_no: string
+                    qr_token: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    store_id: string
+                    table_no: string
+                    qr_token?: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    store_id?: string
+                    table_no?: string
+                    qr_token?: string
+                    created_at?: string
+                }
+            },
             calls: {
                 Row: {
                     id: string
