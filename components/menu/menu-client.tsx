@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { ShoppingBag, Bell, Search, Utensils, Home, Clock, CheckCircle, Receipt } from "lucide-react"
+import { ShoppingBag, Bell, Search, Utensils, Home, Clock, CheckCircle, Receipt, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -346,7 +346,17 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                                                     <div className="font-medium">{item.name}</div>
                                                     <div className="text-sm text-muted-foreground">₺{item.price} x {item.quantity}</div>
                                                 </div>
-                                                <div className="font-bold text-lg">₺{item.price * item.quantity}</div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="font-bold text-lg">₺{item.price * item.quantity}</div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                                        onClick={() => removeItem(item.id)}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
