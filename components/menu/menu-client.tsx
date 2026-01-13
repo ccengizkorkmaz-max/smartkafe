@@ -189,9 +189,9 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                 clearCart()
                 setActiveTab('orders')
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error)
-            toast.error("Hata oluştu.")
+            toast.error("Hata: " + (error.message || "Bilinmeyen hata"))
         }
     }
 
