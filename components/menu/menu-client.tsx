@@ -44,7 +44,7 @@ interface OrderItem {
 
 interface CustomerOrder {
     id: string
-    status: 'new' | 'preparing' | 'done'
+    status: 'new' | 'preparing' | 'done' | 'paid'
     total_price: number
     items: OrderItem[]
     created_at: string
@@ -72,6 +72,7 @@ export default function MenuClient({ store, products }: MenuClientProps) {
     })
 
     // Subscribe to Orders for this Table
+    // Subscribe to Orders for this Table
     useEffect(() => {
         if (!tableNo) return
 
@@ -91,9 +92,31 @@ export default function MenuClient({ store, products }: MenuClientProps) {
         const channel = supabase
             .channel(`table-${tableNo}`)
             .on('postgres_changes',
-                { event: '*', schema: 'public', table: 'orders', filter: `table_no=eq.${tableNo}` },
+                { event: 'INSERT', schema: 'public', table: 'orders', filter: `table_no=eq.${tableNo}` },
                 (payload) => {
-                    fetchOrders() // Refresh orders on any change (insert/update)
+                    const newOrder = payload.new as CustomerOrder
+                    if (newOrder.status !== 'paid') {
+                        setMyOrders(prev => [newOrder, ...prev])
+                        toast.success("Siparişiniz alındı!")
+                    }
+                }
+            )
+            .on('postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `table_no=eq.${tableNo}` },
+                (payload) => {
+                    const updatedOrder = payload.new as CustomerOrder
+                    if (updatedOrder.status === 'paid') {
+                        setMyOrders(prev => prev.filter(o => o.id !== updatedOrder.id))
+                        toast.info("Sipariş ödemesi alındı.")
+                    } else {
+                        setMyOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))
+                    }
+                }
+            )
+            .on('postgres_changes',
+                { event: 'DELETE', schema: 'public', table: 'orders', filter: `table_no=eq.${tableNo}` },
+                (payload) => {
+                    setMyOrders(prev => prev.filter(o => o.id !== payload.old.id))
                 }
             )
             .subscribe()
