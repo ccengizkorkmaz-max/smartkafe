@@ -60,20 +60,20 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="inline-block py-1 px-3 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary mb-6">
-              🚀 Restoran Yönetiminin Geleceği
+            <span className="inline-block py-1 px-3 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-green-400 mb-6">
+              ✨ Tamamen Ücretsiz QR Menü Sistemi
             </span>
             <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6 bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">
               Siparişleri<br /> Hızlandırın.
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-              SmartKafe ile işletmenizi dijitalleştirin. QR menü, temassız sipariş ve mutfak yönetim paneli tek bir yerde.
+              SmartKafe ile işletmenizi hiçbir ücret ödemeden dijitalleştirin. QR menü, temassız sipariş ve mutfak paneli tamamen ücretsiz.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/admin/login">
-                <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
-                  Hemen Başlayın <ArrowRight className="w-5 h-5 ml-2" />
+                <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-transform bg-green-600 hover:bg-green-500 text-white">
+                  Ücretsiz Başlayın <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
               <Link href="/smartkafem?table=1">
@@ -266,13 +266,13 @@ export default function Home() {
       <section className="py-24">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <div className="p-10 md:p-16 rounded-3xl bg-gradient-to-b from-primary/10 to-transparent border border-primary/20">
-            <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">İşletmenizi Dönüştürmeye Hazır Mısınız?</h2>
+            <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">Hemen Ücretsiz Kullanmaya Başlayın</h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
-              Ücretsiz deneyin, müşterilerinize modern bir deneyim sunun. Kurulum ücreti yok, taahhüt yok.
+              Kredi kartı gerekmez, kurulum ücreti yok, aylık ödeme yok. SmartKafe işletmeniz için tamamen ücretsizdir.
             </p>
             <Link href="/admin/login">
-              <Button size="lg" className="h-14 px-10 text-lg rounded-full shadow-2xl shadow-primary/30 hover:scale-105 transition-transform">
-                Hemen Başlayın
+              <Button size="lg" className="h-14 px-10 text-lg rounded-full shadow-2xl shadow-primary/30 hover:scale-105 transition-transform bg-white text-black hover:bg-gray-200">
+                Ücretsiz Hesap Oluştur
               </Button>
             </Link>
           </div>
