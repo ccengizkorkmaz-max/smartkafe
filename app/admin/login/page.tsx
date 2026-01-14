@@ -33,6 +33,9 @@ export default function AdminLogin() {
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
+                    options: {
+                        emailRedirectTo: `${window.location.origin}/admin/login`,
+                    },
                 })
                 if (error) throw error
                 toast.success("Kayıt başarılı! Lütfen giriş yapın.")
