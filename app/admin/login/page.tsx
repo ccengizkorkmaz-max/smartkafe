@@ -38,7 +38,7 @@ export default function AdminLogin() {
                     },
                 })
                 if (error) throw error
-                toast.success("Kayıt başarılı! Lütfen giriş yapın.")
+                toast.success("Hesap aktivasyonu e-posta adresinize gönderildi. Lütfen onaylamayı unutmayın")
                 setIsLogin(true)
             }
         } catch (error: any) {
