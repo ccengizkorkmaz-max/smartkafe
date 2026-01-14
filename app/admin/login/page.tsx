@@ -4,6 +4,8 @@
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
@@ -49,7 +51,13 @@ export default function AdminLogin() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+            <Button variant="ghost" className="absolute top-4 left-4" asChild>
+                <Link href="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Ana Sayfaya Dön
+                </Link>
+            </Button>
             <Card className="w-full max-w-md border-border bg-card/50 backdrop-blur-sm">
                 <CardHeader>
                     <CardTitle className="text-2xl text-center text-primary">
