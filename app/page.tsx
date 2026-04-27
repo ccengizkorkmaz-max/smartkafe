@@ -1,12 +1,43 @@
 "use client"
 
+import { useState } from "react"
+import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
-import { ArrowRight, QrCode, Smartphone, Zap, ChefHat, Check, BarChart3, LayoutDashboard } from "lucide-react"
+import { ArrowRight, QrCode, Smartphone, Zap, ChefHat, Check, BarChart3, LayoutDashboard, Lightbulb, MessageSquare, Send } from "lucide-react"
 import Image from "next/image"
 
 export default function Home() {
+  const [suggestionName, setSuggestionName] = useState("")
+  const [suggestionContent, setSuggestionContent] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSuggestionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!suggestionContent) return
+    setIsSubmitting(true)
+    
+    try {
+      const { error } = await supabase.from('suggestions').insert([
+        { name: suggestionName, content: suggestionContent }
+      ])
+      
+      if (error) throw error
+      
+      toast.success("Öneriniz başarıyla alındı! Teşekkür ederiz.")
+      setSuggestionName("")
+      setSuggestionContent("")
+    } catch (err: any) {
+      // Fallback if table doesn't exist
+      toast.info("E-posta uygulamasına yönlendiriliyorsunuz...")
+      window.location.href = `mailto:ccengizkorkmaz@gmail.com?subject=SmartKafe%20%C3%96neri&body=${encodeURIComponent(suggestionContent)}%0A%0A-${encodeURIComponent(suggestionName)}`
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   const features = [
     {
       icon: <QrCode className="w-6 h-6 text-blue-400" />,
@@ -314,6 +345,60 @@ export default function Home() {
       </section>
 
 
+
+      {/* Suggestions Section */}
+      <section className="py-24 relative overflow-hidden bg-gradient-to-b from-zinc-900/20 to-black border-t border-white/5">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-yellow-500/10 blur-[100px] rounded-full pointer-events-none opacity-50" />
+        <div className="max-w-4xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-500/10 text-yellow-500 mb-6 border border-yellow-500/20">
+              <Lightbulb className="w-8 h-8" />
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">SmartKafe'de Hangi Özellikler Olmalı?</h2>
+            <p className="text-muted-foreground text-lg mb-4">Önerilerinizi bizimle paylaşın, uygulamayı birlikte geliştirelim. Bu öneriler <span className="text-white">ccengizkorkmaz@gmail.com</span> adresine ve sistemimize iletilecektir.</p>
+            <Link href="/oneriler" className="text-yellow-400 hover:text-yellow-300 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <MessageSquare className="w-4 h-4" /> Sizden Gelen Önerileri İnceleyin
+            </Link>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="p-8 rounded-3xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-sm"
+          >
+            <form onSubmit={handleSuggestionSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-300">İsminiz (İsteğe bağlı)</label>
+                <input 
+                  type="text" 
+                  value={suggestionName}
+                  onChange={(e) => setSuggestionName(e.target.value)}
+                  placeholder="Adınız Soyadınız veya İşletme Adı" 
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary transition-colors"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-300">Öneriniz <span className="text-red-400">*</span></label>
+                <textarea 
+                  required
+                  value={suggestionContent}
+                  onChange={(e) => setSuggestionContent(e.target.value)}
+                  placeholder="Hangi özellikler eklense işinizi daha da kolaylaştırır? Fikirlerinizi detaylıca yazabilirsiniz..." 
+                  className="w-full h-32 resize-none bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary transition-colors"
+                ></textarea>
+              </div>
+              <Button type="submit" disabled={isSubmitting} size="lg" className="w-full h-14 text-lg rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black font-bold">
+                {isSubmitting ? "Gönderiliyor..." : (
+                  <>
+                    <Send className="w-5 h-5 mr-2" /> Önerimi Gönder
+                  </>
+                )}
+              </Button>
+            </form>
+          </motion.div>
+        </div>
+      </section>
 
       {/* FAQ Section */}
       <section className="py-24 bg-zinc-900/30 border-y border-white/5">
