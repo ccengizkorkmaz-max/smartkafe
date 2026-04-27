@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { ShoppingBag, Bell, Search, Utensils, Home, Clock, CheckCircle, Receipt, Trash2 } from "lucide-react"
+import { ShoppingBag, Bell, Search, Utensils, Home, Clock, CheckCircle, Receipt, Trash2, Globe, Sparkles, CreditCard, X } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -51,6 +51,83 @@ interface CustomerOrder {
     created_at: string
 }
 
+const TRANSLATIONS = {
+    tr: {
+        searchMenu: "Ne yemek istersin?",
+        all: "Tümü",
+        addedToCart: "Sepete eklendi",
+        undo: "Geri Al",
+        myCart: "Sepetim",
+        clear: "Temizle",
+        emptyCart: "Sepetiniz boş.",
+        backToMenu: "Menüye Dön",
+        total: "Toplam Tutar",
+        confirmOrder: "Siparişi Onayla (Masada Öde)",
+        payOnline: "Online Öde",
+        myOrders: "Siparişlerim",
+        noOrders: "Henüz siparişiniz yok.",
+        browseMenu: "Menüye Göz At",
+        orderTotal: "Toplam",
+        waiter: "Garson",
+        bill: "Hesap",
+        menu: "Menü",
+        cart: "Sepet",
+        orders: "Sipariş",
+        aiSuggestTitle: "Bunların yanına ne dersiniz?",
+        paymentTitle: "Güvenli Online Ödeme",
+        cardNumber: "Kart Numarası",
+        expiry: "Son Kullanma (AA/YY)",
+        cvv: "CVV",
+        pay: "Ödemeyi Tamamla",
+        orderSuccess: "Siparişiniz alındı!",
+        paymentSuccess: "Ödeme alındı, sipariş oluşturuldu!",
+        statusPreparing: "Hazırlanıyor",
+        statusDone: "Tamamlandı",
+        statusUnknown: "Bilinmiyor",
+        callWaiterSuccess: "Garson çağrıldı.",
+        callBillSuccess: "Hesap istendi.",
+        error: "Bir hata oluştu.",
+        add: "Ekle"
+    },
+    en: {
+        searchMenu: "What would you like?",
+        all: "All",
+        addedToCart: "Added to cart",
+        undo: "Undo",
+        myCart: "My Cart",
+        clear: "Clear",
+        emptyCart: "Your cart is empty.",
+        backToMenu: "Back to Menu",
+        total: "Total Amount",
+        confirmOrder: "Place Order (Pay at Table)",
+        payOnline: "Pay Online",
+        myOrders: "My Orders",
+        noOrders: "No orders yet.",
+        browseMenu: "Browse Menu",
+        orderTotal: "Total",
+        waiter: "Waiter",
+        bill: "Bill",
+        menu: "Menu",
+        cart: "Cart",
+        orders: "Orders",
+        aiSuggestTitle: "You might also like",
+        paymentTitle: "Secure Online Payment",
+        cardNumber: "Card Number",
+        expiry: "Expiry (MM/YY)",
+        cvv: "CVV",
+        pay: "Complete Payment",
+        orderSuccess: "Order successfully placed!",
+        paymentSuccess: "Payment successful!",
+        statusPreparing: "Preparing",
+        statusDone: "Done",
+        statusUnknown: "Unknown",
+        callWaiterSuccess: "Waiter called.",
+        callBillSuccess: "Bill requested.",
+        error: "An error occurred.",
+        add: "Add"
+    }
+}
+
 
 export default function MenuClient({ store, products, initialTableNo }: MenuClientProps) {
     const searchParams = useSearchParams()
@@ -62,6 +139,13 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
     const [activeCategory, setActiveCategory] = useState<string>("All")
     const [searchQuery, setSearchQuery] = useState("")
     const [myOrders, setMyOrders] = useState<CustomerOrder[]>([])
+    
+    // New Feature States
+    const [lang, setLang] = useState<'tr' | 'en'>('tr')
+    const [showPaymentModal, setShowPaymentModal] = useState(false)
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+
+    const t = TRANSLATIONS[lang]
 
     // Unique Categories
     const categories = ["All", ...Array.from(new Set(products.map((p) => p.category)))]
@@ -138,10 +222,9 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
 
     const handleCallWaiter = async (type: 'waiter' | 'bill') => {
         if (!tableNo) {
-            toast.error("Masa numarası bulunamadı. Lütfen QR kodu tekrar taratın.")
+            toast.error(t.error)
             return
         }
-
         setIsCallingWaiter(true)
         try {
             const { error } = await supabase.from("calls").insert({
@@ -150,18 +233,18 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                 type: type,
             })
             if (error) throw error
-            toast.success(type === 'bill' ? "Hesap istendi." : "Garson çağrıldı.")
+            toast.success(type === 'bill' ? t.callBillSuccess : t.callWaiterSuccess)
         } catch (error) {
             console.error(error)
-            toast.error("Bir hata oluştu.")
+            toast.error(t.error)
         } finally {
             setIsCallingWaiter(false)
         }
     }
 
-    const handlePlaceOrder = async () => {
+    const handlePlaceOrder = async (isPaidOnline = false) => {
         if (!tableNo) {
-            toast.error("Masa numarası bulunamadı.")
+            toast.error(t.error)
             return
         }
         try {
@@ -169,10 +252,9 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                 store_id: store.id,
                 table_no: tableNo,
                 total_price: total(),
-                status: 'new' as const,
+                status: isPaidOnline ? 'paid' : 'new',
                 items: JSON.parse(JSON.stringify(items))
             }
-            // Fix: Select the inserted row immediately to get the ID and full object
             const { data, error } = await supabase
                 .from("orders")
                 .insert(orderData)
@@ -181,19 +263,41 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
 
             if (error) throw error
 
-            // Immediate UI update (Optimistic-like but with real DB data)
             if (data) {
-                const newOrder = data as unknown as CustomerOrder
-                setMyOrders(prev => [newOrder, ...prev])
-                toast.success("Siparişiniz alındı!")
+                if (!isPaidOnline) {
+                    const newOrder = data as unknown as CustomerOrder
+                    setMyOrders(prev => [newOrder, ...prev])
+                }
+                toast.success(isPaidOnline ? t.paymentSuccess : t.orderSuccess)
                 clearCart()
-                setActiveTab('orders')
+                setShowPaymentModal(false)
+                if (!isPaidOnline) setActiveTab('orders')
+                else setActiveTab('menu')
             }
         } catch (error: any) {
             console.error(error)
-            toast.error("Hata: " + (error.message || "Bilinmeyen hata"))
+            toast.error(t.error)
         }
     }
+
+    const simulatePayment = () => {
+        setIsProcessingPayment(true)
+        setTimeout(() => {
+            handlePlaceOrder(true)
+            setIsProcessingPayment(false)
+        }, 2000)
+    }
+
+    const getUpsellProducts = () => {
+        if (items.length === 0) return []
+        const cartCategoryIds = items.map(i => products.find(p => p.id === i.id)?.category)
+        const suggested = products.filter(p => !items.some(i => i.id === p.id) && !cartCategoryIds.includes(p.category)).slice(0, 2)
+        if (suggested.length === 0) {
+            return products.filter(p => !items.some(i => i.id === p.id)).slice(0, 2)
+        }
+        return suggested
+    }
+    const upsellProducts = getUpsellProducts()
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -220,9 +324,14 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                             {tableNo && <p className="text-xs text-muted-foreground">Masa {tableNo}</p>}
                         </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="rounded-full bg-secondary/50" onClick={() => handleCallWaiter('waiter')}>
-                        <Bell className="w-5 h-5" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="rounded-full px-3 h-10 bg-secondary/50" onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}>
+                            <Globe className="w-4 h-4 mr-1.5" /> {lang.toUpperCase()}
+                        </Button>
+                        <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 bg-secondary/50" onClick={() => handleCallWaiter('waiter')}>
+                            <Bell className="w-5 h-5" />
+                        </Button>
+                    </div>
                 </div>
 
                 {activeTab === 'menu' && (
@@ -231,7 +340,7 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                                placeholder="Ne yemek istersin?"
+                                placeholder={t.searchMenu}
                                 className="pl-9 bg-secondary/50 border-transparent rounded-xl h-11 focus-visible:ring-offset-0 focus-visible:bg-secondary"
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
@@ -252,7 +361,7 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                                             : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                                     )}
                                 >
-                                    {cat}
+                                    {cat === 'All' ? t.all : cat}
                                 </button>
                             ))}
                         </div>
@@ -294,9 +403,9 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 addItem({ id: product.id, name: product.name, price: product.price, quantity: 1 })
-                                                toast("Sepete eklendi", {
+                                                toast(t.addedToCart, {
                                                     description: product.name,
-                                                    action: { label: "Geri Al", onClick: () => removeItem(product.id) }
+                                                    action: { label: t.undo, onClick: () => removeItem(product.id) }
                                                 })
                                             }}
                                             className="absolute bottom-3 right-3 w-10 h-10 bg-white/90 backdrop-blur text-black rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
@@ -327,15 +436,15 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                             className="space-y-4"
                         >
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold">Sepetim</h2>
-                                <Button variant="ghost" size="sm" onClick={clearCart} className="text-destructive hover:bg-destructive/10">Temizle</Button>
+                                <h2 className="text-2xl font-bold">{t.myCart}</h2>
+                                <Button variant="ghost" size="sm" onClick={clearCart} className="text-destructive hover:bg-destructive/10">{t.clear}</Button>
                             </div>
 
                             {items.length === 0 ? (
                                 <div className="text-center py-20 text-muted-foreground">
                                     <ShoppingBag className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                    <p>Sepetiniz boş.</p>
-                                    <Button variant="link" onClick={() => setActiveTab('menu')}>Menüye Dön</Button>
+                                    <p>{t.emptyCart}</p>
+                                    <Button variant="link" onClick={() => setActiveTab('menu')}>{t.backToMenu}</Button>
                                 </div>
                             ) : (
                                 <>
@@ -360,14 +469,42 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                                             </div>
                                         ))}
                                     </div>
+
+                                    {upsellProducts.length > 0 && (
+                                        <div className="mt-8">
+                                            <div className="flex items-center gap-2 mb-4 text-yellow-500">
+                                                <Sparkles className="w-5 h-5" />
+                                                <h3 className="font-bold text-sm uppercase tracking-wider">{t.aiSuggestTitle}</h3>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {upsellProducts.map(up => (
+                                                    <div key={up.id} className="bg-secondary/30 rounded-xl p-3 border border-yellow-500/20 relative overflow-hidden flex flex-col justify-between">
+                                                        <div>
+                                                            <div className="font-medium text-sm leading-tight mb-1">{up.name}</div>
+                                                            <div className="font-bold text-sm text-yellow-500">₺{up.price}</div>
+                                                        </div>
+                                                        <Button size="sm" className="w-full mt-3 h-8 text-xs bg-white text-black hover:bg-gray-200" onClick={() => addItem({ id: up.id, name: up.name, price: up.price, quantity: 1 })}>
+                                                            {t.add}
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="mt-8 p-6 bg-secondary/30 rounded-2xl border border-white/5 space-y-4">
                                         <div className="flex justify-between text-lg font-bold">
-                                            <span>Toplam Tutar</span>
+                                            <span>{t.total}</span>
                                             <span>₺{total()}</span>
                                         </div>
-                                        <Button size="lg" className="w-full text-lg font-bold py-6 rounded-xl shadow-lg shadow-white/5" onClick={handlePlaceOrder}>
-                                            Siparişi Onayla
-                                        </Button>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            <Button size="lg" variant="outline" className="w-full text-sm font-bold h-12 rounded-xl border-white/10 hover:bg-white/5" onClick={() => handlePlaceOrder(false)}>
+                                                {t.confirmOrder}
+                                            </Button>
+                                            <Button size="lg" className="w-full text-sm font-bold h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20" onClick={() => setShowPaymentModal(true)}>
+                                                <CreditCard className="w-4 h-4 mr-2" /> {t.payOnline}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </>
                             )}
@@ -382,12 +519,12 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                             exit={{ opacity: 0, x: -20 }}
                             className="space-y-4"
                         >
-                            <h2 className="text-2xl font-bold mb-6">Siparişlerim</h2>
+                            <h2 className="text-2xl font-bold mb-6">{t.myOrders}</h2>
                             {myOrders.length === 0 ? (
                                 <div className="text-center py-20 text-muted-foreground">
                                     <Clock className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                    <p>Henüz siparişiniz yok.</p>
-                                    <Button variant="link" onClick={() => setActiveTab('menu')}>Menüye Göz At</Button>
+                                    <p>{t.noOrders}</p>
+                                    <Button variant="link" onClick={() => setActiveTab('menu')}>{t.browseMenu}</Button>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
@@ -413,7 +550,7 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                                             </div>
 
                                             <div className="pt-3 border-t border-white/5 flex justify-between font-bold">
-                                                <span>Toplam</span>
+                                                <span>{t.orderTotal}</span>
                                                 <span>₺{order.total_price}</span>
                                             </div>
                                         </div>
@@ -435,7 +572,7 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                     )}
                 >
                     <Home className="w-5 h-5" />
-                    <span className="text-[10px] font-bold">Menü</span>
+                    <span className="text-[10px] font-bold">{t.menu}</span>
                 </button>
 
                 <div className="w-px h-6 bg-white/10 mx-1" />
@@ -451,7 +588,7 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                         <ShoppingBag className="w-5 h-5" />
                         {items.length > 0 && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-black" />}
                     </div>
-                    <span className="text-[10px] font-bold">Sepet</span>
+                    <span className="text-[10px] font-bold">{t.cart}</span>
                 </button>
 
                 <div className="w-px h-6 bg-white/10 mx-1" />
@@ -464,7 +601,7 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                     )}
                 >
                     <Clock className="w-5 h-5" />
-                    <span className="text-[10px] font-bold">Sipariş</span>
+                    <span className="text-[10px] font-bold">{t.orders}</span>
                 </button>
 
                 <div className="w-px h-6 bg-white/10 mx-1" />
@@ -474,9 +611,50 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                     className="relative px-6 py-3 rounded-full flex flex-col items-center gap-1 hover:bg-white/5 text-muted-foreground transition-all"
                 >
                     <Receipt className="w-5 h-5" />
-                    <span className="text-[10px] font-bold">Hesap</span>
+                    <span className="text-[10px] font-bold">{t.bill}</span>
                 </button>
             </nav >
+
+            <AnimatePresence>
+                {showPaymentModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-6 shadow-2xl relative"
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="font-bold text-lg flex items-center gap-2"><CreditCard className="w-5 h-5 text-blue-400" /> {t.paymentTitle}</h3>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10" onClick={() => setShowPaymentModal(false)}>
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs text-muted-foreground">{t.cardNumber}</label>
+                                    <Input placeholder="**** **** **** ****" className="bg-black/50 border-white/10 h-12" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs text-muted-foreground">{t.expiry}</label>
+                                        <Input placeholder="AA/YY" className="bg-black/50 border-white/10 h-12" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs text-muted-foreground">{t.cvv}</label>
+                                        <Input type="password" placeholder="***" className="bg-black/50 border-white/10 h-12" />
+                                    </div>
+                                </div>
+                                <div className="pt-4 border-t border-white/10 mt-6">
+                                    <Button className="w-full h-12 text-lg font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-xl" disabled={isProcessingPayment} onClick={simulatePayment}>
+                                        {isProcessingPayment ? "İşleniyor..." : `${t.pay} (₺${total()})`}
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div >
     )
 }
