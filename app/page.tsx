@@ -64,7 +64,8 @@ export default function Home() {
             <span className="font-bold text-lg tracking-tight">SmartKafe</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/smartkafem?table=1" className="text-sm text-muted-foreground hover:text-white transition-colors hidden sm:block">Demo Mağaza</Link>
+            <Link href="/smartkafem?table=1" className="text-sm text-muted-foreground hover:text-white transition-colors hidden sm:block">Demo Müşteri</Link>
+            <Link href="/admin/login?demo=true" className="text-sm text-muted-foreground hover:text-white transition-colors hidden sm:block">Demo İşletme</Link>
             <Link href="/admin/login">
               <Button size="sm" className="font-semibold">Giriş Yap</Button>
             </Link>
@@ -218,6 +219,33 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Mission Section */}
+      <section className="py-20 relative border-t border-white/5 bg-gradient-to-b from-black to-zinc-900/20">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-sm font-medium mb-6 border border-red-500/20">
+              <Zap className="w-4 h-4" /> İşletmenizin Yanındayız
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold mb-8 leading-tight">
+              Komisyoncu Platformlara <br className="hidden md:block" /> <span className="text-red-400">Kazancınızı Kaptırmayın.</span>
+            </h2>
+            <div className="space-y-6 text-lg md:text-xl text-muted-foreground leading-relaxed text-justify md:text-center">
+              <p>
+                Trendyol, Getir gibi sipariş firmaları komisyon, kampanya, puan vs. diyerek neredeyse restorandan, kafeden, üreten ve emek veren işletmeden daha fazla kazanç elde etmektedir. SmartKafe, buna karşı gıda işletmelerini sonuna kadar destekleyen bir platformdur.
+              </p>
+              <p>
+                İsteriz ki; kafeler, restoranlar, lokantalar, pastaneler, çiğköfteciler ve bilumum gıda işletmeleri SmartKafe ile hizmet versin. Kazançlarını komisyoncu platformlara kaptırmak yerine, müşterilerine daha kaliteli ve daha hesaplı fiyatlarla hizmet sunabilsinler.
+              </p>
             </div>
           </motion.div>
         </div>

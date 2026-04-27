@@ -1,22 +1,45 @@
-
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { supabase } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { toast } from "sonner"
 
-export default function AdminLogin() {
+function AdminLoginContent() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
     const [isLogin, setIsLogin] = useState(true)
+    const [isDemoLoading, setIsDemoLoading] = useState(false)
     const router = useRouter()
+    const searchParams = useSearchParams()
+
+    useEffect(() => {
+        const isDemo = searchParams.get('demo') === 'true'
+        if (isDemo) {
+            const demoLogin = async () => {
+                setIsDemoLoading(true)
+                try {
+                    const { error } = await supabase.auth.signInWithPassword({
+                        email: "ccengizkorkmaz@gmail.com",
+                        password: "123456", 
+                    })
+                    if (error) throw error
+                    toast.success("Demo işletme girişi başarılı!")
+                    router.push("/admin/dashboard")
+                } catch (error: any) {
+                    toast.error(error.message || "Demo girişinde hata oluştu.")
+                    setIsDemoLoading(false)
+                }
+            }
+            demoLogin()
+        }
+    }, [searchParams, router])
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -48,6 +71,15 @@ export default function AdminLogin() {
         } finally {
             setLoading(false)
         }
+    }
+
+    if (isDemoLoading) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 relative">
+                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                 <p className="text-lg font-medium text-muted-foreground">Demo işletmeye giriş yapılıyor...</p>
+            </div>
+        )
     }
 
     return (
@@ -102,5 +134,18 @@ export default function AdminLogin() {
                 </CardFooter>
             </Card>
         </div>
+    )
+}
+
+export default function AdminLogin() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                <p className="text-lg font-medium text-muted-foreground">Yükleniyor...</p>
+            </div>
+        }>
+            <AdminLoginContent />
+        </Suspense>
     )
 }
