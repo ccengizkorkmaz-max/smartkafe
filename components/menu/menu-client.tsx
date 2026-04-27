@@ -87,7 +87,8 @@ const TRANSLATIONS = {
         callWaiterSuccess: "Garson çağrıldı.",
         callBillSuccess: "Hesap istendi.",
         error: "Bir hata oluştu.",
-        add: "Ekle"
+        add: "Ekle",
+        poweredBy: "SmartKafe Altyapısı ile Hazırlanmıştır"
     },
     en: {
         searchMenu: "What would you like?",
@@ -124,8 +125,37 @@ const TRANSLATIONS = {
         callWaiterSuccess: "Waiter called.",
         callBillSuccess: "Bill requested.",
         error: "An error occurred.",
-        add: "Add"
+        add: "Add",
+        poweredBy: "Powered by SmartKafe"
     }
+}
+
+// Demo amaçlı veritabanı verilerini çeviren basit sözlük
+const DB_DICTIONARY: Record<string, string> = {
+    "Kahveler": "Coffees",
+    "Tatlılar": "Desserts",
+    "Soğuk İçecekler": "Cold Beverages",
+    "Sıcak İçecekler": "Hot Beverages",
+    "Ana Yemekler": "Main Courses",
+    "Atıştırmalıklar": "Snacks",
+    "Kahvaltı": "Breakfast",
+    "İçecekler": "Drinks",
+    "Filtre Kahve": "Filter Coffee",
+    "Türk Kahvesi": "Turkish Coffee",
+    "Çay": "Tea",
+    "Su": "Water",
+    "Maden Suyu": "Mineral Water",
+    "Limonata": "Lemonade",
+    "San Sebastian": "San Sebastian Cheesecake",
+    "Latte": "Caffe Latte",
+    "Tiramisu": "Tiramisu"
+}
+
+const translateDb = (text: string | null | undefined, lang: 'tr' | 'en') => {
+    if (!text) return ""
+    if (lang === 'tr') return text
+    const found = Object.keys(DB_DICTIONARY).find(k => k.toLowerCase() === text.trim().toLowerCase())
+    return found ? DB_DICTIONARY[found] : text
 }
 
 
@@ -361,7 +391,7 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                                             : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                                     )}
                                 >
-                                    {cat === 'All' ? t.all : cat}
+                                    {cat === 'All' ? t.all : translateDb(cat, lang)}
                                 </button>
                             ))}
                         </div>
@@ -417,10 +447,10 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                                     {/* Info */}
                                     <div>
                                         <div className="flex justify-between items-start">
-                                            <h3 className="font-semibold text-base leading-tight">{product.name}</h3>
+                                            <h3 className="font-semibold text-base leading-tight">{translateDb(product.name, lang)}</h3>
                                             <span className="font-bold">₺{product.price}</span>
                                         </div>
-                                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1 opacity-70">{product.description}</p>
+                                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1 opacity-70">{translateDb(product.description, lang)}</p>
                                     </div>
                                 </motion.div>
                             ))}
@@ -452,7 +482,7 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                                         {items.map(item => (
                                             <div key={item.id} className="flex gap-4 items-center bg-card/50 p-4 rounded-xl border border-white/5">
                                                 <div className="flex-1">
-                                                    <div className="font-medium">{item.name}</div>
+                                                    <div className="font-medium">{translateDb(item.name, lang)}</div>
                                                     <div className="text-sm text-muted-foreground">₺{item.price} x {item.quantity}</div>
                                                 </div>
                                                 <div className="flex items-center gap-3">
@@ -480,7 +510,7 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                                                 {upsellProducts.map(up => (
                                                     <div key={up.id} className="bg-secondary/30 rounded-xl p-3 border border-yellow-500/20 relative overflow-hidden flex flex-col justify-between">
                                                         <div>
-                                                            <div className="font-medium text-sm leading-tight mb-1">{up.name}</div>
+                                                            <div className="font-medium text-sm leading-tight mb-1">{translateDb(up.name, lang)}</div>
                                                             <div className="font-bold text-sm text-yellow-500">₺{up.price}</div>
                                                         </div>
                                                         <Button size="sm" className="w-full mt-3 h-8 text-xs bg-white text-black hover:bg-gray-200" onClick={() => addItem({ id: up.id, name: up.name, price: up.price, quantity: 1 })}>
@@ -543,7 +573,7 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                                             <div className="space-y-2 mb-4">
                                                 {order.items.map((item, idx) => (
                                                     <div key={idx} className="flex justify-between text-sm text-muted-foreground">
-                                                        <span>{item.quantity}x {item.name}</span>
+                                                        <span>{item.quantity}x {translateDb(item.name, lang)}</span>
                                                         <span>₺{item.price * item.quantity}</span>
                                                     </div>
                                                 ))}
@@ -560,6 +590,13 @@ export default function MenuClient({ store, products, initialTableNo }: MenuClie
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                <div className="pt-12 pb-8 text-center opacity-40 flex flex-col items-center justify-center gap-1">
+                    <span className="text-[10px] font-medium tracking-widest uppercase">{t.poweredBy}</span>
+                    <span className="text-xs font-bold flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-yellow-500" /> SmartKafe
+                    </span>
+                </div>
             </main>
 
             {/* Bottom Navigation Dock */}
