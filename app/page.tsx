@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
-import { ArrowRight, QrCode, Smartphone, Zap, ChefHat, Check, BarChart3, LayoutDashboard, Lightbulb, MessageSquare, Send } from "lucide-react"
+import { ArrowRight, QrCode, Smartphone, Zap, ChefHat, Check, BarChart3, LayoutDashboard, Lightbulb, MessageSquare, Send, Sparkles } from "lucide-react"
 import Image from "next/image"
 
 export default function Home() {
@@ -91,7 +91,9 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-black/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-black font-bold">SK</div>
+            <div className="bg-yellow-500/10 p-1.5 rounded-lg border border-yellow-500/20">
+              <Sparkles className="w-5 h-5 text-yellow-500" />
+            </div>
             <span className="font-bold text-lg tracking-tight">SmartKafe</span>
           </div>
           <div className="flex items-center gap-4">
