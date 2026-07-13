@@ -67,6 +67,17 @@ export default function AdminOnboarding() {
                 return
             }
 
+            // Ensure profile exists for the logged in user to satisfy database constraints
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session) {
+                await supabase
+                    .from("profiles")
+                    .upsert({
+                        id: session.user.id,
+                        full_name: session.user.user_metadata?.full_name || session.user.email
+                    }, { onConflict: 'id' })
+            }
+
             // Insert new store.
             // Due to the DB trigger 'on_store_created', the authenticated user 
             // will automatically be inserted as 'owner' in the 'store_members' table.
