@@ -136,8 +136,11 @@ export async function POST(request: Request) {
                     })
                 }
             } else {
-                // If profile not found, reply with warning & show user's chat ID
-                const replyText = `⚠️ *Profil Bulunamadı!*\n\nSipariş bildirimleri alabilmek için lütfen önce SmartKafe profil sayfanızdan bu Chat ID değerini kaydedin:\n\n*Chat ID'niz:* \`${chatId}\``
+                const host = request.headers.get("host") || "smartkafe.vercel.app"
+                const protocol = host.includes("localhost") ? "http" : "https"
+                const profileUrl = `${protocol}://${host}/admin/profile`
+
+                const replyText = `⚠️ *Profil Bulunamadı!*\n\nSipariş bildirimleri alabilmek için lütfen önce SmartKafe profil sayfanızdan bu Chat ID değerini kaydedin:\n\n*Chat ID'niz:* \`${chatId}\`\n\n🔗 *Profil Sayfası:* [Profil Ayarlarına Git](${profileUrl})`
                 await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
