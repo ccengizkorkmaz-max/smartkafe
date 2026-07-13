@@ -7,10 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent } from "@/components/ui/card"
-import { Printer, ArrowLeft } from "lucide-react"
+import { Printer, ArrowLeft, RefreshCw } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export default function QRGenerator() {
+    const router = useRouter()
     const [tableCount, setTableCount] = useState(10)
     const [store, setStore] = useState<{ id: string, slug: string } | null>(null)
     const [qrData, setQrData] = useState<{ tableNo: string, url: string }[]>([])
@@ -18,12 +21,30 @@ export default function QRGenerator() {
 
     useEffect(() => {
         const fetchStoreAndTables = async () => {
-            // 1. Fetch Store
-            const { data: storeData } = await supabase.from("stores").select("id, slug").single()
-            if (!storeData) return
-            setStore(storeData)
+            // 1. Check Auth & Wait for Session
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) {
+                router.push("/admin/login")
+                return
+            }
 
-            // 2. Fetch Existing Tables
+            // 2. Fetch Store Membership
+            const { data: member, error: memberError } = await supabase
+                .from("store_members")
+                .select("store_id, role, stores(*)")
+                .eq("user_id", session.user.id)
+                .maybeSingle()
+
+            if (memberError || !member) {
+                router.push("/admin/onboarding")
+                return
+            }
+
+            const storeData = member.stores as any
+            if (!storeData) return
+            setStore({ id: storeData.id, slug: storeData.slug })
+
+            // 3. Fetch Existing Tables
             const { data: tables } = await supabase
                 .from("tables")
                 .select("table_no, qr_token")
@@ -49,7 +70,7 @@ export default function QRGenerator() {
             }
         }
         fetchStoreAndTables()
-    }, [])
+    }, [router])
 
     const generateQRs = async () => {
         if (!store) return
@@ -93,6 +114,51 @@ export default function QRGenerator() {
         setLoading(false)
     }
 
+    const rotateTokens = async () => {
+        if (!store || qrData.length === 0) return
+
+        const confirmed = window.confirm(
+            "Tüm masaların karekod tokenlarını sıfırlamak (döndürmek) istiyor musunuz?\n\nBu işlem, masalardaki mevcut karekodları okutan müşterilerin menüye erişimini hemen kesecek ve yeni sipariş vermelerini engelleyecektir. Yeni karekodları tekrar yazdırmanız gerekir."
+        )
+        if (!confirmed) return
+
+        setLoading(true)
+        const newQrData = []
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+
+        // Fetch current tables of this store
+        const { data: tables } = await supabase
+            .from("tables")
+            .select("table_no")
+            .eq("store_id", store.id)
+
+        if (tables) {
+            for (const t of tables) {
+                const newToken = self.crypto.randomUUID()
+                const { error } = await supabase
+                    .from("tables")
+                    .update({ qr_token: newToken })
+                    .eq("store_id", store.id)
+                    .eq("table_no", t.table_no)
+
+                if (error) {
+                    console.error(`Error updating table ${t.table_no}:`, error)
+                } else {
+                    newQrData.push({
+                        tableNo: t.table_no,
+                        url: `${baseUrl}/${store.slug}?t=${newToken}`
+                    })
+                }
+            }
+
+            // Sort new QRs
+            newQrData.sort((a, b) => Number(a.tableNo) - Number(b.tableNo))
+            setQrData(newQrData)
+            toast.success("Tüm masa karekod tokenları başarıyla yenilendi (döndürüldü)!")
+        }
+        setLoading(false)
+    }
+
     return (
         <div className="p-8 max-w-6xl mx-auto min-h-screen bg-white text-black print:p-0">
             <div className="mb-8 print:hidden flex flex-col md:flex-row items-center justify-between gap-4">
@@ -123,9 +189,14 @@ export default function QRGenerator() {
                         {loading ? "Oluşturuluyor..." : "Kodları Oluştur"}
                     </Button>
                     {qrData.length > 0 && (
-                        <Button onClick={() => window.print()} className="gap-2 bg-black text-white hover:bg-gray-800 border-none">
-                            <Printer className="w-4 h-4" /> Yazdır
-                        </Button>
+                        <>
+                            <Button onClick={rotateTokens} disabled={loading || !store} className="gap-2 bg-red-600 text-white hover:bg-red-500 border-none">
+                                <RefreshCw className="w-4 h-4" /> Tokenları Yenile
+                            </Button>
+                            <Button onClick={() => window.print()} className="gap-2 bg-black text-white hover:bg-gray-800 border-none">
+                                <Printer className="w-4 h-4" /> Yazdır
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, Calendar, DollarSign, ShoppingBag, TrendingUp } from "lucide-react"
+import { useRouter } from "next/navigation"
 import {
     Table,
     TableBody,
@@ -23,6 +24,7 @@ import {
 type Order = Database["public"]["Tables"]["orders"]["Row"]
 
 export default function OrdersView() {
+    const router = useRouter()
     const [orders, setOrders] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
     const [store, setStore] = useState<any>(null)
@@ -34,14 +36,33 @@ export default function OrdersView() {
     }, [])
 
     const fetchData = async () => {
-        // Fetch Store
-        const { data: storeData } = await supabase.from("stores").select("*").limit(1).maybeSingle()
-        if (storeData) setStore(storeData)
+        // 1. Check Auth & Wait for Session
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+            router.push("/admin/login")
+            return
+        }
 
-        // Fetch Orders (Increased limit for better stats)
+        // 2. Fetch Store Membership
+        const { data: member, error: memberError } = await supabase
+            .from("store_members")
+            .select("store_id, role, stores(*)")
+            .eq("user_id", session.user.id)
+            .maybeSingle()
+
+        if (memberError || !member) {
+            router.push("/admin/onboarding")
+            return
+        }
+
+        const currentStore = member.stores
+        setStore(currentStore)
+
+        // 3. Fetch Orders (Increased limit for better stats, filtered by store_id)
         const { data: ordersData } = await supabase
             .from("orders")
             .select("*")
+            .eq("store_id", member.store_id)
             .order("created_at", { ascending: false })
             .limit(500)
 

@@ -65,11 +65,20 @@ export default async function StorePage({ params, searchParams }: PageProps) {
         }
     }
 
-    // 3. Fetch Products
+    // 3. Fetch Products with modifiers, calories, and allergens
     const { data: products, error: productError } = await supabase
         .from("products")
-        .select("id, name, price, description, image_url, category")
+        .select(`
+            id, name, price, description, image_url, category, calories, allergens,
+            product_option_groups (
+                id, name, is_required, min_select, max_select,
+                product_options (
+                    id, name, price_modifier, is_available
+                )
+            )
+        `)
         .eq("store_id", store.id)
+        .eq("is_available", true)
         .order("category", { ascending: true })
 
     if (productError) {
@@ -78,7 +87,7 @@ export default async function StorePage({ params, searchParams }: PageProps) {
 
     return (
         <div className="min-h-screen bg-background text-foreground font-sans">
-            <MenuClient store={store} products={products || []} initialTableNo={initialTableNo} />
+            <MenuClient store={store} products={(products as any) || []} initialTableNo={initialTableNo} />
         </div>
     )
 }

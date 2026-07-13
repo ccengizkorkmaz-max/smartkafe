@@ -10,10 +10,12 @@ import Image from "next/image"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Database } from "@/types/database.types"
+import { useRouter } from "next/navigation"
 
 type Product = Database["public"]["Tables"]["products"]["Row"]
 
 export default function ProductsPage() {
+    const router = useRouter()
     const [products, setProducts] = useState<Product[]>([])
     const [stats, setStats] = useState<Record<string, { count: number, revenue: number }>>({})
     const [search, setSearch] = useState("")
@@ -23,9 +25,30 @@ export default function ProductsPage() {
     }, [])
 
     const fetchData = async () => {
+        // 1. Check Auth & Wait for Session
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+            router.push("/admin/login")
+            return
+        }
+
+        // 2. Fetch Store Membership
+        const { data: member, error: memberError } = await supabase
+            .from("store_members")
+            .select("store_id, role, stores(*)")
+            .eq("user_id", session.user.id)
+            .maybeSingle()
+
+        if (memberError || !member) {
+            router.push("/admin/onboarding")
+            return
+        }
+
+        // 3. Fetch Products (filtered by store_id)
         const { data: productsData, error: productsError } = await supabase
             .from("products")
             .select("*")
+            .eq("store_id", member.store_id)
             .order("created_at", { ascending: false })
 
         if (productsError) {
@@ -34,12 +57,12 @@ export default function ProductsPage() {
         }
         setProducts(productsData || [])
 
-        // Fetch Orders for stats
+        // 4. Fetch Orders for stats (filtered by store_id)
         const { data: ordersData } = await supabase
             .from("orders")
             .select("items")
-            .eq("status", "done") // Only count completed orders for stats? Or all? User said "sipariş verildi", maybe all is better, but usually revenue implies completed. I'll use ALL for count, but maybe only done for revenue? Let's stick to ALL for simplicity of "popularity", or maybe just DONE to result "Ciro". Let's use ALL for now as "Demand".
-        // Actually, "ciro" (revenue) strictly implies money earned, so maybe I should filtering by status not 'new'. But let's keep it simple and aggregation all non-cancelled? There is no cancelled status in types, only new/preparing/done. So all represent intent. I will use ALL.
+            .eq("store_id", member.store_id)
+            .neq("status", "cancelled")
 
         if (ordersData) {
             const newStats: Record<string, { count: number, revenue: number }> = {}

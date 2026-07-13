@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { LogOut, Package, QrCode, Store, ClipboardList } from "lucide-react"
+import { LogOut, Package, QrCode, Store, ClipboardList, TrendingUp } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import Link from "next/link"
 import Image from "next/image"
@@ -64,6 +64,16 @@ export default function AdminNavbar({ store }: AdminNavbarProps) {
                                 className="gap-2"
                             >
                                 <ClipboardList className="w-4 h-4" /> <span className="hidden sm:inline">Siparişler</span>
+                            </Button>
+                        </Link>
+
+                        <Link href="/admin/reports">
+                            <Button
+                                variant={isActive("/admin/reports") ? "secondary" : "ghost"}
+                                size="sm"
+                                className="gap-2"
+                            >
+                                <TrendingUp className="w-4 h-4" /> <span className="hidden sm:inline">Raporlar</span>
                             </Button>
                         </Link>
 
