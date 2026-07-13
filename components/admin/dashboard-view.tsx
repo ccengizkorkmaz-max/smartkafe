@@ -12,10 +12,11 @@ import Image from "next/image"
 import { 
     Bell, CheckCircle, Clock, Utensils, LogOut, Package, QrCode, Store, 
     Play, CreditCard, Settings, Search, X, Plus, Percent, RefreshCw, AlertTriangle,
-    MapPin, User, Navigation
+    MapPin, User, Navigation, Loader2
 } from "lucide-react"
 import AdminNavbar from "@/components/admin/admin-navbar"
 import { cn } from "@/lib/utils"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 // Types
 import { Database } from "@/types/database.types"
@@ -41,7 +42,15 @@ export default function DashboardView() {
     const [connectionStatus, setConnectionStatus] = useState<'CONNECTING' | 'SUBSCRIBED' | 'TIMED_OUT' | 'cLOSED' | 'CHANNEL_ERROR'>('CONNECTING')
 
     // Tab Switcher
-    const [activeTab, setActiveTab] = useState<'kitchen' | 'tables' | 'dispatch'>('kitchen')
+    const [activeTab, setActiveTab] = useState<'kitchen' | 'tables' | 'dispatch' | 'staff'>('kitchen')
+
+    // Staff Management States
+    const [allStoreMembers, setAllStoreMembers] = useState<any[]>([])
+    const [searchQuery, setSearchQuery] = useState("")
+    const [searchResults, setSearchResults] = useState<any[]>([])
+    const [selectedProfile, setSelectedProfile] = useState<any>(null)
+    const [selectedRole, setSelectedRole] = useState<string>("staff")
+    const [addingMember, setAddingMember] = useState(false)
 
     // KDS Config States
     const [showKdsSettings, setShowKdsSettings] = useState(false)
@@ -131,8 +140,93 @@ export default function DashboardView() {
             setCouriers(courierList)
         }
 
+        // 5. Fetch All Store Members
+        const { data: allMembers } = await supabase
+            .from("store_members")
+            .select("user_id, role, profiles(*)")
+            .eq("store_id", idToUse)
+
+        if (allMembers) {
+            setAllStoreMembers(allMembers.map((m: any) => {
+                const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+                return {
+                    id: m.user_id,
+                    role: m.role,
+                    full_name: profile?.full_name || "Bilinmeyen Kullanıcı",
+                    telegram_chat_id: profile?.telegram_chat_id || ""
+                }
+            }))
+        }
+
         setLoading(false)
         console.log("Veriler yenilendi")
+    }
+
+    const handleSearchProfiles = async (query: string) => {
+        setSearchQuery(query)
+        if (query.trim().length < 3) {
+            setSearchResults([])
+            return
+        }
+
+        const { data } = await supabase
+            .from("profiles")
+            .select("id, full_name")
+            .ilike("full_name", `%${query}%`)
+            .limit(10)
+
+        if (data) {
+            setSearchResults(data)
+        }
+    }
+
+    const handleAddMember = async () => {
+        if (!selectedProfile) return
+        setAddingMember(true)
+
+        const idToUse = store?.id
+
+        const { error } = await supabase
+            .from("store_members")
+            .insert({
+                store_id: idToUse,
+                user_id: selectedProfile.id,
+                role: selectedRole
+            })
+
+        if (error) {
+            toast.error("Personel eklenemedi: " + error.message)
+        } else {
+            toast.success(`${selectedProfile.full_name} başarıyla eklendi.`)
+            setSelectedProfile(null)
+            setSearchQuery("")
+            setSearchResults([])
+            refreshData()
+        }
+        setAddingMember(false)
+    }
+
+    const handleRemoveMember = async (memberIdToRemove: string) => {
+        const idToUse = store?.id
+        
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session && session.user.id === memberIdToRemove) {
+            toast.error("Kendinizi listeden çıkaramazsınız.")
+            return
+        }
+
+        const { error } = await supabase
+            .from("store_members")
+            .delete()
+            .eq("store_id", idToUse)
+            .eq("user_id", memberIdToRemove)
+
+        if (error) {
+            toast.error("Personel silinemedi: " + error.message)
+        } else {
+            toast.success("Personel kaldırıldı.")
+            refreshData()
+        }
     }
 
     useEffect(() => {
@@ -603,36 +697,46 @@ export default function DashboardView() {
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     {/* Glassmorphism Panel Tabs */}
-                    <div className="flex bg-[#0f0f0f] p-1.5 rounded-2xl border border-white/5 shadow-inner max-w-sm">
+                    <div className="flex flex-wrap bg-[#0f0f0f] p-1.5 rounded-2xl border border-white/5 shadow-inner gap-1">
                         <button
                             onClick={() => setActiveTab('kitchen')}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 ${
                                 activeTab === 'kitchen'
                                     ? "bg-white text-black shadow-lg"
                                     : "text-muted-foreground hover:text-white"
                             }`}
                         >
-                            🍳 Mutfak Takip (KDS)
+                            🍳 Mutfak (KDS)
                         </button>
                         <button
                             onClick={() => setActiveTab('tables')}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 ${
                                 activeTab === 'tables'
                                     ? "bg-white text-black shadow-lg"
                                     : "text-muted-foreground hover:text-white"
                             }`}
                         >
-                            📍 Masa Haritası & Çağrılar
+                            📍 Masa Haritası
                         </button>
                         <button
                             onClick={() => setActiveTab('dispatch')}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 ${
                                 activeTab === 'dispatch'
                                     ? "bg-white text-black shadow-lg"
                                     : "text-muted-foreground hover:text-white"
                             }`}
                         >
-                            🚚 Kurye Dağıtım (Dispatcher)
+                            🚚 Kurye Dağıtım
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('staff')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 ${
+                                activeTab === 'staff'
+                                    ? "bg-white text-black shadow-lg"
+                                    : "text-muted-foreground hover:text-white"
+                            }`}
+                        >
+                            👥 Personel
                         </button>
                     </div>
 
@@ -992,6 +1096,144 @@ export default function DashboardView() {
                                 </AnimatePresence>
                             </div>
                         )}
+                    </section>
+                )}
+
+                {/* Tab Content 4: Staff & Courier Management */}
+                {activeTab === 'staff' && (
+                    <section className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-2xl font-bold flex items-center gap-2">
+                                Personel ve Kurye Yönetimi
+                                <Badge variant="secondary" className="ml-2 text-primary bg-primary/10 border-primary/20">{allStoreMembers.length}</Badge>
+                            </h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            {/* Left: Add Staff form */}
+                            <Card className="border-white/5 bg-card/40 backdrop-blur-xl h-fit">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Personel Ekle</CardTitle>
+                                    <CardDescription>Sisteme kayıt olmuş kullanıcıları e-posta veya isimleriyle aratarak işletmenize ekleyin.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-2 relative">
+                                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">İsim / E-posta ile Ara (En az 3 harf)</label>
+                                        <div className="relative">
+                                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                            <Input
+                                                value={searchQuery}
+                                                onChange={e => handleSearchProfiles(e.target.value)}
+                                                placeholder="Örn: ccengizkorkmaz..."
+                                                className="bg-secondary/40 border-transparent pl-10 h-11"
+                                            />
+                                        </div>
+
+                                        {/* Autocomplete Results Dropdown */}
+                                        {searchResults.length > 0 && (
+                                            <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#0d0d0d] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 divide-y divide-white/5">
+                                                {searchResults.map(profile => (
+                                                    <button
+                                                        key={profile.id}
+                                                        onClick={() => {
+                                                            setSelectedProfile(profile)
+                                                            setSearchQuery(profile.full_name)
+                                                            setSearchResults([])
+                                                        }}
+                                                        className="w-full text-left px-4 py-3 text-sm hover:bg-white/5 transition-colors flex flex-col gap-0.5"
+                                                    >
+                                                        <span className="font-bold text-white">{profile.full_name}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {selectedProfile && (
+                                        <div className="p-3.5 bg-green-500/5 border border-green-500/10 rounded-xl text-xs text-green-400 flex flex-col gap-1">
+                                            <span className="font-bold text-white">Seçilen Kullanıcı:</span>
+                                            <span>{selectedProfile.full_name}</span>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Yetki / Rol Tanımı</label>
+                                        <select
+                                            value={selectedRole}
+                                            onChange={e => setSelectedRole(e.target.value)}
+                                            className="w-full bg-secondary/40 border border-white/5 rounded-xl h-11 px-3 text-sm text-white"
+                                        >
+                                            <option value="staff">Staff (Kasiyer / Garson)</option>
+                                            <option value="courier">Courier (Kurye)</option>
+                                            <option value="manager">Manager (Müdür)</option>
+                                        </select>
+                                    </div>
+
+                                    <Button
+                                        disabled={!selectedProfile || addingMember}
+                                        onClick={handleAddMember}
+                                        className="w-full h-11 rounded-xl font-bold bg-white text-black hover:bg-zinc-200"
+                                    >
+                                        {addingMember ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                                        Personel Olarak Ekle
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            {/* Right: Staff List Table */}
+                            <Card className="border-white/5 bg-card/40 backdrop-blur-xl lg:col-span-2">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Kayıtlı Personel Listesi</CardTitle>
+                                    <CardDescription>İşletmenizde kayıtlı kurye, kasa görevlisi ve yöneticiler.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {allStoreMembers.length === 0 ? (
+                                        <div className="text-center py-10 text-muted-foreground text-sm">Hiç kayıtlı personel bulunamadı.</div>
+                                    ) : (
+                                        <div className="border border-white/5 rounded-xl overflow-hidden divide-y divide-white/5 bg-black/10">
+                                            {allStoreMembers.map(member => (
+                                                <div key={member.id} className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
+                                                    <div className="space-y-1">
+                                                        <div className="font-semibold text-sm text-white flex items-center gap-2">
+                                                            {member.full_name}
+                                                            {member.telegram_chat_id && (
+                                                                <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] rounded-md font-mono">TG Bağlı</Badge>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground">ID: {member.id}</div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-4">
+                                                        <Badge className={cn(
+                                                            "text-xs px-2.5 py-1 rounded-md border",
+                                                            member.role === 'owner' && "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                                                            member.role === 'manager' && "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+                                                            member.role === 'staff' && "bg-teal-500/10 text-teal-400 border-teal-500/20",
+                                                            member.role === 'courier' && "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                                        )}>
+                                                            {member.role === 'owner' ? 'Kurucu' : 
+                                                             member.role === 'manager' ? 'Müdür' : 
+                                                             member.role === 'courier' ? 'Kurye' : 'Personel'}
+                                                        </Badge>
+
+                                                        {member.role !== 'owner' && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleRemoveMember(member.id)}
+                                                                className="rounded-xl hover:bg-red-500/10 text-muted-foreground hover:text-red-400 border border-transparent hover:border-red-500/10"
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
                     </section>
                 )}
             </main>
