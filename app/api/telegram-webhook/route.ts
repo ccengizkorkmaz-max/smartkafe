@@ -5,7 +5,7 @@ export async function POST(request: Request) {
     try {
         const body = await request.json()
 
-        // Handle Telegram Callback Query
+        // Handle Telegram Callback Query (Interactive button clicks)
         if (body.callback_query) {
             const callbackQuery = body.callback_query
             const callbackData = callbackQuery.data // e.g. "on_the_way:UUID" or "delivered:UUID"
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
                     })
                     .eq("id", orderId)
 
-                // Answer Callback Query (removes loading state on Telegram button click)
+                // Answer Callback Query
                 await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -67,10 +67,8 @@ export async function POST(request: Request) {
                     })
                 })
 
-                // Edit Message Text to show updated status
+                // Edit Message Text
                 const newText = `${originalText}\n\n*Güncel Durum: ${statusTextLabel}*`
-                
-                // If yolda, keep "delivered" button. If delivered, remove all buttons.
                 const newKeyboard = action === 'on_the_way' ? {
                     inline_keyboard: [
                         [
@@ -88,6 +86,65 @@ export async function POST(request: Request) {
                         text: newText,
                         parse_mode: "Markdown",
                         reply_markup: newKeyboard
+                    })
+                })
+            }
+        }
+
+        // Handle Telegram Text Messages (/online, /offline, /start)
+        if (body.message && body.message.text) {
+            const chatId = body.message.chat.id.toString()
+            const text = body.message.text.trim().toLowerCase()
+
+            // Find profile by telegram_chat_id
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("id, full_name")
+                .eq("telegram_chat_id", chatId)
+                .maybeSingle()
+
+            const botToken = "8635446793:AAELVKXaRqWUJFNXVXqXJMyMVD3xeiZBI_Q"
+
+            if (profile) {
+                let replyText = ""
+                let isOnline = false
+
+                if (text === "/online" || text === "/start") {
+                    isOnline = true
+                    replyText = `🟢 *SmartKafe Kurye Sistemine Hoş Geldiniz!*\n\nDurumunuz: *Aktif (Servise Açık)*\nYeni siparişler telefonunuza anlık iletilecektir.\n\n_Çevrimdışı olmak için /offline yazabilirsiniz._`
+                } else if (text === "/offline") {
+                    isOnline = false
+                    replyText = `🔴 *Çevrimdışı Durumuna Geçtiniz.*\n\nYeni sipariş bildirimi almayacaksınız.\n\n_Tekrar çalışmaya başlamak için /online yazabilirsiniz._`
+                }
+
+                if (replyText) {
+                    // Update profile online status
+                    await supabase
+                        .from("profiles")
+                        .update({ is_online: isOnline })
+                        .eq("id", profile.id)
+
+                    // Send response message
+                    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            text: replyText,
+                            parse_mode: "Markdown"
+                        })
+                    })
+                }
+            } else {
+                // If profile not found, reply with warning & show user's chat ID
+                const replyText = `⚠️ *Profil Bulunamadı!*\n\nSipariş bildirimleri alabilmek için lütfen önce SmartKafe profil sayfanızdan bu Chat ID değerini kaydedin:\n\n*Chat ID'niz:* \`${chatId}\``
+                await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: replyText,
+                        parse_mode: "Markdown"
                     })
                 })
             }

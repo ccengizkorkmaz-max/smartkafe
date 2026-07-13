@@ -134,7 +134,8 @@ export default function DashboardView() {
                 return {
                     id: m.user_id,
                     full_name: profile?.full_name || "Kurye",
-                    telegram_chat_id: profile?.telegram_chat_id
+                    telegram_chat_id: profile?.telegram_chat_id,
+                    is_online: profile?.is_online || false
                 }
             })
             setCouriers(courierList)
@@ -153,7 +154,8 @@ export default function DashboardView() {
                     id: m.user_id,
                     role: m.role,
                     full_name: profile?.full_name || "Bilinmeyen Kullanıcı",
-                    telegram_chat_id: profile?.telegram_chat_id || ""
+                    telegram_chat_id: profile?.telegram_chat_id || "",
+                    is_online: profile?.is_online || false
                 }
             }))
         }
@@ -1072,7 +1074,9 @@ export default function DashboardView() {
                                                             >
                                                                 <option value="">Kurye Seçin...</option>
                                                                 {couriers.map(c => (
-                                                                    <option key={c.id} value={c.id}>{c.full_name}</option>
+                                                                    <option key={c.id} value={c.id}>
+                                                                        {c.is_online ? "🟢" : "🔴"} {c.full_name}
+                                                                    </option>
                                                                 ))}
                                                             </select>
                                                             <Button
@@ -1195,6 +1199,9 @@ export default function DashboardView() {
                                                 <div key={member.id} className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
                                                     <div className="space-y-1">
                                                         <div className="font-semibold text-sm text-white flex items-center gap-2">
+                                                                {member.role === 'courier' && (
+                                                                    <span className={member.is_online ? "text-green-500" : "text-zinc-600"}>●</span>
+                                                                )}
                                                             {member.full_name}
                                                             {member.telegram_chat_id && (
                                                                 <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] rounded-md font-mono">TG Bağlı</Badge>
