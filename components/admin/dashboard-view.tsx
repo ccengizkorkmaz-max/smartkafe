@@ -396,7 +396,7 @@ export default function DashboardView() {
             ]
         }
 
-        const botToken = store?.payment_settings?.telegram_bot_token || "7394827110:AAHzN28392182019482910381029"
+        const botToken = store?.payment_settings?.telegram_bot_token || "8635446793:AAELVKXaRqWUJFNXVXqXJMyMVD3xeiZBI_Q"
 
         try {
             const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {

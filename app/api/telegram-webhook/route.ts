@@ -31,7 +31,7 @@ export async function POST(request: Request) {
             }
 
             const currentStore = Array.isArray(order.stores) ? order.stores[0] : order.stores
-            const botToken = currentStore?.payment_settings?.telegram_bot_token || "7394827110:AAHzN28392182019482910381029"
+            const botToken = currentStore?.payment_settings?.telegram_bot_token || "8635446793:AAELVKXaRqWUJFNXVXqXJMyMVD3xeiZBI_Q"
 
             let newStatus = ""
             let statusTextLabel = ""
